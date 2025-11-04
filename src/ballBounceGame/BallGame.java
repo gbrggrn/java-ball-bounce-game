@@ -5,11 +5,17 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
@@ -31,16 +37,15 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 	private int randFrequency = 350;
 	private boolean leftKeyPressed = false;
 	private boolean rightKeyPressed = false;
-	private boolean startText = false;
-	private boolean gameOverText = false;
+	private boolean gameStart = false;
+	private boolean gameOver = false;
 	
 //High Score variables
 	private int playerScore = 0;
 	private Player activePlayer;
 	private String playerName;
-	private List <Player> highScoreList;
 	String fileName = "highScore.ser";
-	File highScore = new File(fileName);
+	File highScoreFile = new File(fileName);
 	
 //Player variables
 	private int playerWidth = 120;
@@ -66,7 +71,7 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 	private int gravity = 1;
 	private int initialBallSpeedY = 5;
 	
-	public BallGame(Listeners listenersIn) {
+	public BallGame(Listeners listenersIn, String playerNameIn) {
 		listeners = listenersIn;
 		setPreferredSize(new Dimension(gameFrameWidth, gameFrameHeight));
 		setBackground(Color.black);
@@ -78,8 +83,10 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 		rand = new Random();
 		
 		activePlayer = new Player();
+		playerName = playerNameIn;
+		activePlayer.setName(playerName);
 		
-		shouldCreateSaveFile(highScore);
+		shouldCreateSaveFile();
 		
 		running = true;
 		
@@ -111,12 +118,12 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 		g.drawPolygon(playerVertexX, playerVertexY, playerVertexPoints);
 			g.fillPolygon(playerVertexX, playerVertexY, playerVertexPoints);
 //draw start text
-		if(startText) {
+		if(gameStart) {
 			g.setColor(Color.yellow);
 			g.drawString("Bounce the Ball!", gameFrameWidth/2, gameFrameHeight/2);
 		}
 		
-		if(gameOverText) {
+		if(gameOver) {
 			g.setColor(Color.red);
 			g.drawString("You bounced the ball " + Integer.toString(playerScore) + " times!", gameFrameWidth/2, gameFrameHeight/2 + 50);
 		}
@@ -189,9 +196,9 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 		while(running == true) {
 			
 			if(System.currentTimeMillis() - startTime < startPause) {
-				startText = true;
+				gameStart = true;
 			} else {
-				startText = false;
+				gameStart = false;
 				moveBall();
 				updatePlayerPosition();
 				
@@ -227,9 +234,9 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 	    initialBallSpeedY = 35;
 	    
 	    if(ballPosY - ballRadius > gameFrameHeight) {
-	    	gameOverText = true;
+	    	gameOver = true;
 	    	running = false;
-	    	//saveHighScore();
+	    	shouldSaveHighScore();
 	    	}
 	    	
 	    if(ballPosX - ballRadius <= 0) {
@@ -295,14 +302,14 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 		ballSpeedY = (int) (initialBallSpeedY * Math.sin(angleOfReflection));
 	}
 	
-	public void shouldCreateSaveFile(File highScore) {
-		if(highScore.exists()) {
+	public void shouldCreateSaveFile() {
+		if(highScoreFile.exists()) {
 			System.out.println("High Score file already exists...");
 		} else {
 			try {
-				boolean fileCreated = highScore.createNewFile();
+				boolean fileCreated = highScoreFile.createNewFile();
 				if(fileCreated) {
-					System.out.println("New savefile created: " + highScore.getAbsolutePath());
+					System.out.println("New savefile created: " + highScoreFile.getAbsolutePath());
 				} else {
 					System.out.println("Failed to create new savefile");
 					return;
@@ -313,18 +320,15 @@ public class BallGame extends JPanel implements Runnable, KeyListener{
 		}
 	}
 	
-	public void shouldSaveHighScore(File highScore) {
-		
-		
-	}
-	
-	public void loadHighScore(File highScore) {
-		
-		try (ObjectInputStream read = new ObjectInputStream(new FileInputStream(highScore))) {
-			
-		} catch (IOException ioe) {
-			
+	public void shouldSaveHighScore() {
+		if (highScoreFile.exists()) {
+			try (BufferedWriter write = new BufferedWriter(new FileWriter(highScoreFile, true))) {
+				String wrtString = playerName + " - " + Integer.toString(playerScore) + "\n";
+				
+				write.append(wrtString);
+			} catch (IOException ioe) {
+				System.out.println("Failed to save to file");
+			}
 		}
 	}
-
 }
